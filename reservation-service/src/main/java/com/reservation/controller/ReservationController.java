@@ -1,6 +1,7 @@
 package com.reservation.controller;
 
 import com.reservation.dto.RestaurantDTO;
+import com.reservation.dto.ReviewDTO;
 import com.reservation.entity.Reservation;
 import com.reservation.service.ReservationService;
 import lombok.RequiredArgsConstructor;
@@ -61,5 +62,50 @@ public class ReservationController {
     public ResponseEntity<Void> deleteReservation(@PathVariable Long id) {
         service.deleteReservation(id);
         return ResponseEntity.ok().build();
+    }
+
+    // Review endpoints
+    @PostMapping("/{reservationId}/review")
+    public ResponseEntity<ReviewDTO> addReview(
+            @PathVariable Long reservationId,
+            @RequestBody Map<String, Object> body) {
+
+        Long clientId = ((Number) body.get("clientId")).longValue();
+        String clientName = (String) body.get("clientName");
+        Double rating = ((Number) body.get("rating")).doubleValue();
+        String comment = (String) body.get("comment");
+
+        ReviewDTO review = service.addReviewToReservation(reservationId, clientId, clientName, rating, comment);
+        return ResponseEntity.ok(review);
+    }
+
+    @PutMapping("/{reservationId}/review/{reviewId}")
+    public ResponseEntity<ReviewDTO> updateReview(
+            @PathVariable Long reservationId,
+            @PathVariable Long reviewId,
+            @RequestBody Map<String, Object> body) {
+
+        Long clientId = ((Number) body.get("clientId")).longValue();
+        Double rating = ((Number) body.get("rating")).doubleValue();
+        String comment = (String) body.get("comment");
+
+        ReviewDTO review = service.updateReview(reviewId, clientId, rating, comment);
+        return ResponseEntity.ok(review);
+    }
+
+    @DeleteMapping("/{reservationId}/review/{reviewId}")
+    public ResponseEntity<Void> deleteReview(
+            @PathVariable Long reservationId,
+            @PathVariable Long reviewId,
+            @RequestParam Long clientId) {
+
+        service.deleteReview(reviewId, reservationId, clientId);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/{reservationId}/review")
+    public ResponseEntity<ReviewDTO> getReviewByReservation(@PathVariable Long reservationId) {
+        ReviewDTO review = service.getReviewByReservation(reservationId);
+        return review != null ? ResponseEntity.ok(review) : ResponseEntity.notFound().build();
     }
 }

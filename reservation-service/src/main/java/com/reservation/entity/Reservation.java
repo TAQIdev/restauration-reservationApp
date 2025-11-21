@@ -15,6 +15,7 @@ public class Reservation {
     private Long id;
 
     @Column(name = "client_id")
+
     private Long clientId;
 
     @Column(name = "restaurant_id")
@@ -28,8 +29,8 @@ public class Reservation {
     @Column(name = "number_of_people")
     private Integer numberOfPeople;
 
-    private String status; // CONFIRMED, CANCELLED
+    private String status;
 
-    private Double rating; // Note sur 10
-    private String comment;
+    @Column(name = "has_review")
+    private Boolean hasReview = false; // Track if client has reviewed
 }

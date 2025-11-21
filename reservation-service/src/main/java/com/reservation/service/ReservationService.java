@@ -2,11 +2,14 @@ package com.reservation.service;
 
 import com.reservation.client.RestaurantClient;
 import com.reservation.dto.RestaurantDTO;
+import com.reservation.dto.ReviewDTO;
 import com.reservation.entity.Reservation;
 import com.reservation.repository.ReservationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -21,6 +24,7 @@ public class ReservationService {
         reservation.setRestaurantId(savedRestaurant.getId());
         reservation.setRestaurantName(savedRestaurant.getName());
         reservation.setStatus("CONFIRMED");
+        reservation.setHasReview(false);
 
         return repository.save(reservation);
     }
@@ -32,14 +36,6 @@ public class ReservationService {
     public Reservation updateReservation(Long id, Reservation reservation) {
         Reservation existing = repository.findById(id).orElse(null);
         if (existing != null) {
-            if (reservation.getRating() != null) {
-                existing.setRating(reservation.getRating());
-                // Update restaurant rating
-                restaurantClient.updateRating(existing.getRestaurantId(), reservation.getRating());
-            }
-            if (reservation.getComment() != null) {
-                existing.setComment(reservation.getComment());
-            }
             if (reservation.getStatus() != null) {
                 existing.setStatus(reservation.getStatus());
             }
@@ -50,5 +46,58 @@ public class ReservationService {
 
     public void deleteReservation(Long id) {
         repository.deleteById(id);
+    }
+
+    // Review Management
+    public ReviewDTO addReviewToReservation(Long reservationId, Long clientId, String clientName,
+                                            Double rating, String comment) {
+        Reservation reservation = repository.findById(reservationId)
+                .orElseThrow(() -> new RuntimeException("Reservation not found"));
+
+        if (!reservation.getClientId().equals(clientId)) {
+            throw new RuntimeException("Unauthorized: Not your reservation");
+        }
+
+        if (reservation.getHasReview()) {
+            throw new RuntimeException("Review already exists for this reservation");
+        }
+
+        Map<String, Object> reviewData = new HashMap<>();
+        reviewData.put("reservationId", reservationId);
+        reviewData.put("clientId", clientId);
+        reviewData.put("clientName", clientName);
+        reviewData.put("rating", rating);
+        reviewData.put("comment", comment);
+
+        ReviewDTO review = restaurantClient.addReview(reservation.getRestaurantId(), reviewData);
+
+        // Mark reservation as reviewed
+        reservation.setHasReview(true);
+        repository.save(reservation);
+
+        return review;
+    }
+
+    public ReviewDTO updateReview(Long reviewId, Long clientId, Double rating, String comment) {
+        Map<String, Object> reviewData = new HashMap<>();
+        reviewData.put("rating", rating);
+        reviewData.put("comment", comment);
+
+        return restaurantClient.updateReview(reviewId, clientId, reviewData);
+    }
+
+    public void deleteReview(Long reviewId, Long reservationId, Long clientId) {
+        Reservation reservation = repository.findById(reservationId)
+                .orElseThrow(() -> new RuntimeException("Reservation not found"));
+
+        restaurantClient.deleteReview(reviewId, clientId);
+
+        // Mark reservation as not reviewed
+        reservation.setHasReview(false);
+        repository.save(reservation);
+    }
+
+    public ReviewDTO getReviewByReservation(Long reservationId) {
+        return restaurantClient.getReviewByReservation(reservationId);
     }
 }
