@@ -15,15 +15,23 @@ public class Restaurant {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true)
+    @Column(name = "place_id", unique = true)
     private String placeId; // From Geoapify
 
+    @Column(nullable = false)
     private String name;
+
+    @Column(length = 500)
     private String address;
+
     private String cuisine;
+
     private Double latitude;
+
     private Double longitude;
+
     private String phone;
+
     private String website;
 
     @Column(name = "rating")

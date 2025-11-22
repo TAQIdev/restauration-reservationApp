@@ -3,10 +3,13 @@ package com.reservation.service;
 import com.reservation.client.RestaurantClient;
 import com.reservation.dto.RestaurantDTO;
 import com.reservation.dto.ReviewDTO;
+import com.reservation.entity.Client;
 import com.reservation.entity.Reservation;
+import com.reservation.repository.ClientRepository;
 import com.reservation.repository.ReservationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,12 +18,19 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ReservationService {
     private final ReservationRepository repository;
+    private final ClientRepository clientRepository;
     private final RestaurantClient restaurantClient;
 
+    @Transactional
     public Reservation createReservation(Reservation reservation, RestaurantDTO restaurantDTO) {
+        // Get client entity
+        Client client = clientRepository.findById(reservation.getClientId())
+                .orElseThrow(() -> new RuntimeException("Client not found"));
+
         // Save restaurant to database if it doesn't exist
         RestaurantDTO savedRestaurant = restaurantClient.saveRestaurant(restaurantDTO);
 
+        reservation.setClient(client);
         reservation.setRestaurantId(savedRestaurant.getId());
         reservation.setRestaurantName(savedRestaurant.getName());
         reservation.setStatus("CONFIRMED");
@@ -33,6 +43,7 @@ public class ReservationService {
         return repository.findByClientId(clientId);
     }
 
+    @Transactional
     public Reservation updateReservation(Long id, Reservation reservation) {
         Reservation existing = repository.findById(id).orElse(null);
         if (existing != null) {
@@ -44,17 +55,19 @@ public class ReservationService {
         return null;
     }
 
+    @Transactional
     public void deleteReservation(Long id) {
         repository.deleteById(id);
     }
 
     // Review Management
+    @Transactional
     public ReviewDTO addReviewToReservation(Long reservationId, Long clientId, String clientName,
                                             Double rating, String comment) {
         Reservation reservation = repository.findById(reservationId)
                 .orElseThrow(() -> new RuntimeException("Reservation not found"));
 
-        if (!reservation.getClientId().equals(clientId)) {
+        if (!reservation.getClient().getId().equals(clientId)) {
             throw new RuntimeException("Unauthorized: Not your reservation");
         }
 
@@ -78,6 +91,7 @@ public class ReservationService {
         return review;
     }
 
+    @Transactional
     public ReviewDTO updateReview(Long reviewId, Long clientId, Double rating, String comment) {
         Map<String, Object> reviewData = new HashMap<>();
         reviewData.put("rating", rating);
@@ -86,6 +100,7 @@ public class ReservationService {
         return restaurantClient.updateReview(reviewId, clientId, reviewData);
     }
 
+    @Transactional
     public void deleteReview(Long reviewId, Long reservationId, Long clientId) {
         Reservation reservation = repository.findById(reservationId)
                 .orElseThrow(() -> new RuntimeException("Reservation not found"));

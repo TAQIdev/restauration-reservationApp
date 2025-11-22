@@ -14,23 +14,38 @@ public class Reservation {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "client_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "client_id", nullable = false)
+    private Client client;
 
-    private Long clientId;
-
-    @Column(name = "restaurant_id")
+    @Column(name = "restaurant_id", nullable = false)
     private Long restaurantId;
 
+    @Column(name = "restaurant_name")
     private String restaurantName;
 
-    @Column(name = "reservation_date")
+    @Column(name = "reservation_date", nullable = false)
     private LocalDateTime reservationDate;
 
-    @Column(name = "number_of_people")
+    @Column(name = "number_of_people", nullable = false)
     private Integer numberOfPeople;
 
-    private String status;
+    @Column(name = "status", nullable = false)
+    private String status; // CONFIRMED, CANCELLED
 
-    @Column(name = "has_review")
+    @Column(name = "has_review", nullable = false)
     private Boolean hasReview = false; // Track if client has reviewed
+
+    // Helper methods pour compatibilité avec le code existant
+    @Transient
+    public Long getClientId() {
+        return client != null ? client.getId() : null;
+    }
+
+    public void setClientId(Long clientId) {
+        if (this.client == null) {
+            this.client = new Client();
+        }
+        this.client.setId(clientId);
+    }
 }
