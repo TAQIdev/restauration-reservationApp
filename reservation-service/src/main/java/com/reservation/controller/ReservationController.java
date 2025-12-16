@@ -29,7 +29,7 @@ public class ReservationController {
         reservation.setNumberOfPeople(((Number) requestBody.get("numberOfPeople")).intValue());
 
         // Extract restaurant info
-        @SuppressWarnings("unchecked")
+
         Map<String, Object> restaurantData = (Map<String, Object>) requestBody.get("restaurant");
 
         RestaurantDTO restaurantDTO = new RestaurantDTO();

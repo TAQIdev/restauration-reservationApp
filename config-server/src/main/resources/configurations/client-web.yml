@@ -1,0 +1,32 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: client-web
+
+
+geoapify:
+  api:
+    key: ${GEOAPIFY_API_KEY:9e479d32f3f843bdb4b13cd0c57e9fa9}
+    url: https://api.geoapify.com/v2/places
+
+
+
+# Service discovery configuration
+reservation:
+  service:
+    name: reservation-service
+
+restaurant:
+  service:
+    name: restaurant-service
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka}
+    fetch-registry: true
+    register-with-eureka: true
+  instance:
+    prefer-ip-address: true

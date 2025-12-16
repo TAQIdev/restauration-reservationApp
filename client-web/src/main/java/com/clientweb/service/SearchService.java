@@ -20,11 +20,7 @@ public class SearchService {
     public List<RestaurantSearchDTO> searchRestaurants(
             double lat, double lon, String cuisine, int radius) {
 
-        // Get restaurants from Geoapify API
-        GeoapifyResponse apiResponse = geoapifyService.searchRestaurants(lat, lon, cuisine, radius);
-        List<RestaurantSearchDTO> apiRestaurants = convertGeoapifyToDTO(apiResponse);
-
-        // Get restaurants from database
+        // Get restaurants from database FIRST (priority)
         WebClient webClient = webClientBuilder.baseUrl(restaurantServiceUrl).build();
         List<RestaurantSearchDTO> dbRestaurants = webClient.get()
                 .uri("/api/restaurants")
@@ -33,22 +29,29 @@ public class SearchService {
                 .collectList()
                 .block();
 
-        // Create a set of placeIds from API results to avoid duplicates
-        Set<String> apiPlaceIds = apiRestaurants.stream()
-                .map(RestaurantSearchDTO::getPlaceId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-
-        // Filter database restaurants to exclude those already in API results
-        List<RestaurantSearchDTO> filteredDbRestaurants = dbRestaurants != null ?
+        // Create a set of placeIds from database results to identify duplicates
+        Set<String> dbPlaceIds = dbRestaurants != null ?
                 dbRestaurants.stream()
-                        .filter(r -> r.getPlaceId() == null || !apiPlaceIds.contains(r.getPlaceId()))
-                        .collect(Collectors.toList()) :
-                new ArrayList<>();
+                        .map(RestaurantSearchDTO::getPlaceId)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toSet()) :
+                new HashSet<>();
 
-        // Combine results: API restaurants first, then database restaurants
-        List<RestaurantSearchDTO> combined = new ArrayList<>(apiRestaurants);
-        combined.addAll(filteredDbRestaurants);
+        // Get restaurants from Geoapify API
+        GeoapifyResponse apiResponse = geoapifyService.searchRestaurants(lat, lon, cuisine, radius);
+        List<RestaurantSearchDTO> apiRestaurants = convertGeoapifyToDTO(apiResponse);
+
+        // Filter API restaurants to EXCLUDE those already in database
+        List<RestaurantSearchDTO> filteredApiRestaurants = apiRestaurants.stream()
+                .filter(r -> r.getPlaceId() == null || !dbPlaceIds.contains(r.getPlaceId()))
+                .collect(Collectors.toList());
+
+        // Combine results: DATABASE restaurants first, then API restaurants
+        List<RestaurantSearchDTO> combined = new ArrayList<>();
+        if (dbRestaurants != null) {
+            combined.addAll(dbRestaurants);
+        }
+        combined.addAll(filteredApiRestaurants);
 
         // Sort by rating (descending)
         combined.sort((r1, r2) -> {
