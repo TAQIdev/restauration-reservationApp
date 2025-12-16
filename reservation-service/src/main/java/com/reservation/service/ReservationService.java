@@ -45,14 +45,25 @@ public class ReservationService {
 
     @Transactional
     public Reservation updateReservation(Long id, Reservation reservation) {
-        Reservation existing = repository.findById(id).orElse(null);
-        if (existing != null) {
-            if (reservation.getStatus() != null) {
-                existing.setStatus(reservation.getStatus());
-            }
-            return repository.save(existing);
+        Reservation existing = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Reservation not found"));
+
+        // Mettre à jour la date de réservation si fournie
+        if (reservation.getReservationDate() != null) {
+            existing.setReservationDate(reservation.getReservationDate());
         }
-        return null;
+
+        // Mettre à jour le nombre de personnes si fourni
+        if (reservation.getNumberOfPeople() != null) {
+            existing.setNumberOfPeople(reservation.getNumberOfPeople());
+        }
+
+        // Mettre à jour le statut si fourni
+        if (reservation.getStatus() != null) {
+            existing.setStatus(reservation.getStatus());
+        }
+
+        return repository.save(existing);
     }
 
     @Transactional

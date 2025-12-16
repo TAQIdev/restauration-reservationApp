@@ -29,7 +29,7 @@ public class ReservationController {
         reservation.setNumberOfPeople(((Number) requestBody.get("numberOfPeople")).intValue());
 
         // Extract restaurant info
-
+        @SuppressWarnings("unchecked")
         Map<String, Object> restaurantData = (Map<String, Object>) requestBody.get("restaurant");
 
         RestaurantDTO restaurantDTO = new RestaurantDTO();
@@ -53,9 +53,28 @@ public class ReservationController {
     @PutMapping("/{id}")
     public ResponseEntity<Reservation> updateReservation(
             @PathVariable Long id,
-            @RequestBody Reservation reservation) {
+            @RequestBody Map<String, Object> requestBody) {
+
+        Reservation reservation = new Reservation();
+
+        // Mettre à jour la date si fournie
+        if (requestBody.containsKey("reservationDate")) {
+            String dateStr = (String) requestBody.get("reservationDate");
+            reservation.setReservationDate(java.time.LocalDateTime.parse(dateStr));
+        }
+
+        // Mettre à jour le nombre de personnes si fourni
+        if (requestBody.containsKey("numberOfPeople")) {
+            reservation.setNumberOfPeople(((Number) requestBody.get("numberOfPeople")).intValue());
+        }
+
+        // Mettre à jour le statut si fourni
+        if (requestBody.containsKey("status")) {
+            reservation.setStatus((String) requestBody.get("status"));
+        }
+
         Reservation updated = service.updateReservation(id, reservation);
-        return updated != null ? ResponseEntity.ok(updated) : ResponseEntity.notFound().build();
+        return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/{id}")
